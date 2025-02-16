@@ -1,0 +1,36 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+package_reboot_if_required: true
+
+write_files:
+  - path: /etc/update-motd.d/99-system-info
+    content: |
+      #!/bin/bash
+
+      OS_VERSION=$(grep -E '^PRETTY_NAME=' /etc/os-release | cut -d= -f2 | tr -d '"')
+      INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+      AZ=$(curl -s http://169.254.169.254/latest/meta-data/placement/availability-zone)
+      PUBLIC_IP=$(curl -s --fail http://169.254.169.254/latest/meta-data/public-ipv4 2>/dev/null || echo "None")
+      PRIVATE_IP=$(curl -s http://169.254.169.254/latest/meta-data/local-ipv4)
+      CPU_LOAD=$(uptime | awk -F'load average:' '{ print $2 }')
+      MEMORY_USAGE=$(free -h | awk '/Mem:/ {print $3 "/" $2}')
+      DISK_USAGE=$(df -h --output=used,size / | tail -n 1 | awk '{print $1 "/" $2}')
+      NETWORK_INTERFACES=$(ip -br link show | awk '{print $1}' | grep -v lo)
+
+      echo "Welcome to your instance"
+      echo ""
+      echo "OS Version: $OS_VERSION"
+      echo "Instance ID: $INSTANCE_ID"
+      echo "Availability Zone: $AZ"
+      echo "Public IP: $PUBLIC_IP"
+      echo "Private IP: $PRIVATE_IP"
+      echo ""
+      echo "System Information:"
+      echo "  - CPU Load: $CPU_LOAD"
+      echo "  - Memory Usage: $MEMORY_USAGE"
+      echo "  - Disk Usage: $DISK_USAGE"
+      echo "  - Network Interfaces: $NETWORK_INTERFACES"
+      echo ""
+
+    permissions: '0755'
